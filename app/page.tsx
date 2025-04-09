@@ -8,34 +8,34 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get('code');
+  // useEffect(() => {
+  //   const url = new URL(window.location.href);
+  //   const code = url.searchParams.get('code');
 
-    const handleOAuth = async () => {
-      if (!code) return;
+  //   const handleOAuth = async () => {
+  //     if (!code) return;
 
-      try {
-        const tokens = await exchangeCodeForToken(code);
-        Cookies.set('access_token', tokens.access_token);
+  //     try {
+  //       const tokens = await exchangeCodeForToken(code);
+  //       Cookies.set('access_token', tokens.access_token);
 
-        // Xoá `code` trên URL sau khi lấy token thành công
-        url.searchParams.delete('code');
-        window.history.replaceState({}, '', url.toString());
+  //       // Xoá `code` trên URL sau khi lấy token thành công
+  //       url.searchParams.delete('code');
+  //       window.history.replaceState({}, '', url.toString());
 
-        // Middleware sẽ tự xử lý redirect sau reload
-        window.location.reload();
-      } catch (error) {
-        console.error('❌ Token exchange error:', error);
-      }
-    };
+  //       // Middleware sẽ tự xử lý redirect sau reload
+  //       window.location.reload();
+  //     } catch (error) {
+  //       console.error('❌ Token exchange error:', error);
+  //     }
+  //   };
 
-    handleOAuth();
-  }, []);
+  //   handleOAuth();
+  // }, []);
 
-  const handleLogin = () => {
-    window.location.href = getGoogleAuthUrl();
-  };
+  // const handleLogin = () => {
+  //   window.location.href = getGoogleAuthUrl();
+  // };
 
   return (
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
@@ -46,10 +46,10 @@ export default function Home() {
             <h1 className="text-3xl font-bold">Welcome back</h1>
             <p className="text-gray-500">Sign in to your account with Google</p>
           </div>
-          <Button onClick={handleLogin} className="w-full" variant="outline">
+          {/* <Button onClick={handleLogin} className="w-full" variant="outline">
             <GoogleIcon className="mr-2 h-4 w-4" />
             Sign in with Google
-          </Button>
+          </Button> */}
         </div>
       </div>
 
