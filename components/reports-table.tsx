@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -38,179 +38,118 @@ type AdMobReport = {
   ecpm: string
 }
 
-// Sample data
-const data: AdMobReport[] = [
-  {
-    id: "1",
-    app: "Puzzle Game Pro",
-    date: "2023-04-01",
-    adUnit: "Banner - Main Menu",
-    adFormat: "Banner",
-    requests: 125000,
-    impressions: 110000,
-    clicks: 3300,
-    ctr: "3.0%",
-    revenue: "$550.00",
-    ecpm: "$5.00",
-  },
-  {
-    id: "2",
-    app: "Puzzle Game Pro",
-    date: "2023-04-01",
-    adUnit: "Interstitial - Level Complete",
-    adFormat: "Interstitial",
-    requests: 45000,
-    impressions: 40000,
-    clicks: 2000,
-    ctr: "5.0%",
-    revenue: "$800.00",
-    ecpm: "$20.00",
-  },
-  {
-    id: "3",
-    app: "Adventure Runner",
-    date: "2023-04-01",
-    adUnit: "Rewarded - Extra Lives",
-    adFormat: "Rewarded",
-    requests: 30000,
-    impressions: 25000,
-    clicks: 1500,
-    ctr: "6.0%",
-    revenue: "$750.00",
-    ecpm: "$30.00",
-  },
-  {
-    id: "4",
-    app: "Weather Pro",
-    date: "2023-04-01",
-    adUnit: "Native - Forecast Page",
-    adFormat: "Native",
-    requests: 80000,
-    impressions: 75000,
-    clicks: 1500,
-    ctr: "2.0%",
-    revenue: "$375.00",
-    ecpm: "$5.00",
-  },
-  {
-    id: "5",
-    app: "Fitness Tracker",
-    date: "2023-04-01",
-    adUnit: "Banner - Stats Page",
-    adFormat: "Banner",
-    requests: 60000,
-    impressions: 55000,
-    clicks: 1100,
-    ctr: "2.0%",
-    revenue: "$275.00",
-    ecpm: "$5.00",
-  },
-  {
-    id: "6",
-    app: "Cooking Master",
-    date: "2023-04-01",
-    adUnit: "Interstitial - Recipe Complete",
-    adFormat: "Interstitial",
-    requests: 25000,
-    impressions: 22000,
-    clicks: 880,
-    ctr: "4.0%",
-    revenue: "$330.00",
-    ecpm: "$15.00",
-  },
-]
+export function ReportsTable() {
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [data, setData] = useState<AdMobReport[]>([])
 
-// Define columns
-const columns: ColumnDef<AdMobReport>[] = [
-  {
-    accessorKey: "app",
-    header: "App",
-    cell: ({ row }) => <div>{row.getValue("app")}</div>,
-  },
-  {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => <div>{row.getValue("date")}</div>,
-  },
-  {
-    accessorKey: "adUnit",
-    header: "Ad Unit",
-    cell: ({ row }) => <div>{row.getValue("adUnit")}</div>,
-  },
-  {
-    accessorKey: "adFormat",
-    header: ({ column }) => {
-      return (
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/daily-earnings")
+        const json = await res.json()
+        
+        const mappedData: AdMobReport[] = json.map((item: any) => ({
+          id: item.id || item._id,
+          app: item.appId?.app || "N/A",
+          date: new Date(item.date).toLocaleDateString(),
+          adUnit: item.adUnit,
+          adFormat: item.format,
+          requests: parseInt(item.adRequests?.split(":").pop() || "0"),
+          impressions: parseInt(item.impressions?.split(":").pop() || "0"),
+          clicks: item.clicks || "0",
+          ctr: item.matchRate || "0",
+          revenue: item.estimatedEarnings || "0",
+          ecpm: item.observedEcpm || "0",
+        }))
+
+        setData(mappedData)
+      } catch (error) {
+        console.error("Failed to fetch report:", error)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const columns: ColumnDef<AdMobReport>[] = [
+    {
+      accessorKey: "app",
+      header: "App",
+      cell: ({ row }) => <div>{row.getValue("app")}</div>,
+    },
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => <div>{row.getValue("date")}</div>,
+    },
+    {
+      accessorKey: "adUnit",
+      header: "Ad Unit",
+      cell: ({ row }) => <div>{row.getValue("adUnit")}</div>,
+    },
+    {
+      accessorKey: "adFormat",
+      header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           Ad Format
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      ),
+      cell: ({ row }) => <div>{row.getValue("adFormat")}</div>,
     },
-    cell: ({ row }) => <div>{row.getValue("adFormat")}</div>,
-  },
-  {
-    accessorKey: "requests",
-    header: ({ column }) => {
-      return (
+    {
+      accessorKey: "requests",
+      header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           Requests
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      ),
+      cell: ({ row }) => (
+        <div className="text-right">{(row.getValue("requests") as number).toLocaleString()}</div>
+      ),
     },
-    cell: ({ row }) => (
-      <div className="text-right">{row.getValue("requests") ? (row.getValue("requests") as number).toLocaleString() : 0}</div>
-    ),
-  },
-  {
-    accessorKey: "impressions",
-    header: ({ column }) => {
-      return (
+    {
+      accessorKey: "impressions",
+      header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           Impressions
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      ),
+      cell: ({ row }) => (
+        <div className="text-right">{(row.getValue("impressions") as number).toLocaleString()}</div>
+      ),
     },
-    cell: ({ row }) => (
-      <div className="text-right">{row.getValue("impressions") ? (row.getValue("impressions") as number).toLocaleString() : 0}</div>
-    ),
-  },
-  {
-    accessorKey: "clicks",
-    header: "Clicks",
-    cell: ({ row }) => (
-      <div className="text-right">{row.getValue("clicks") ? (row.getValue("clicks") as number).toLocaleString() : 0}</div>
-    ),
-  },
-  {
-    accessorKey: "ctr",
-    header: "CTR",
-    cell: ({ row }) => <div className="text-right">{row.getValue("ctr")}</div>,
-  },
-  {
-    accessorKey: "revenue",
-    header: ({ column }) => {
-      return (
+    {
+      accessorKey: "clicks",
+      header: "Clicks",
+      cell: ({ row }) => (
+        <div className="text-right">{(row.getValue("clicks") as number).toLocaleString()}</div>
+      ),
+    },
+    {
+      accessorKey: "ctr",
+      header: "CTR",
+      cell: ({ row }) => <div className="text-right">{row.getValue("ctr")}</div>,
+    },
+    {
+      accessorKey: "revenue",
+      header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           Revenue
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      ),
+      cell: ({ row }) => <div className="text-right font-medium">{row.getValue("revenue")}</div>,
     },
-    cell: ({ row }) => <div className="text-right font-medium">{row.getValue("revenue")}</div>,
-  },
-  {
-    accessorKey: "ecpm",
-    header: "eCPM",
-    cell: ({ row }) => <div className="text-right">{row.getValue("ecpm")}</div>,
-  },
-]
-
-export function ReportsTable() {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    {
+      accessorKey: "ecpm",
+      header: "eCPM",
+      cell: ({ row }) => <div className="text-right">{row.getValue("ecpm")}</div>,
+    },
+  ]
 
   const table = useReactTable({
     data,
@@ -247,18 +186,16 @@ export function ReportsTable() {
               {table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
           <Button variant="outline">
@@ -272,13 +209,11 @@ export function ReportsTable() {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
