@@ -6,7 +6,7 @@ import { DateRangePicker } from "@/components/date-range-picker"
 export default function ReportsPage() {
   return (
     <div className="flex flex-col gap-6">
-    <DashboardHeader title="Your Apps" description="Manage your AdMob-enabled applications" />
+    <DashboardHeader title="Reports" description="Manage mediation reports" />
 
       <div className="flex flex-col gap-4">
         <Card>

@@ -1,7 +1,7 @@
-// app/dashboard/apps/[id]/page.tsx
-
 "use client"
 
+import axios from "axios"
+import useSWR from "swr"
 import { useParams } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,63 +15,20 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
-// Mock data for apps
-const apps = [
-  {
-    id: "1",
-    name: "Puzzle Game Pro",
-    platform: "Android & iOS",
-    status: "Active",
-    adUnits: 4,
-    revenue: "$1,999.00",
-    icon: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "2",
-    name: "Adventure Runner",
-    platform: "Android",
-    status: "Active",
-    adUnits: 3,
-    revenue: "$1,599.00",
-    icon: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "3",
-    name: "Weather Pro",
-    platform: "iOS",
-    status: "Active",
-    adUnits: 2,
-    revenue: "$1,299.00",
-    icon: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "4",
-    name: "Fitness Tracker",
-    platform: "Android & iOS",
-    status: "Active",
-    adUnits: 3,
-    revenue: "$999.00",
-    icon: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "5",
-    name: "Cooking Master",
-    platform: "Android",
-    status: "Active",
-    adUnits: 2,
-    revenue: "$699.00",
-    icon: "/placeholder.svg?height=80&width=80",
-  },
-]
+const fetcher = (url: string) => axios.get(url).then((res) => res.data)
 
 export default function AppDetailsPage() {
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
-  const app = apps.find((app) => app.id === id)
 
-  if (!app) {
-    return <div className="text-center py-10 text-red-500">App not found</div>
-  }
+  const { data: app, error, isLoading } = useSWR(
+    id ? `http://localhost:8080/apps/${id}` : null,
+    fetcher
+  )
+
+  if (isLoading) return <div className="text-center py-10">Loading...</div>
+  if (error) return <div className="text-center py-10 text-red-500">Failed to load app</div>
+  if (!app) return <div className="text-center py-10 text-red-500">App not found</div>
 
   return (
     <div className="container mx-auto py-6">
@@ -82,7 +39,7 @@ export default function AppDetailsPage() {
             <span className="sr-only">Back to apps</span>
           </Link>
         </Button>
-        <DashboardHeader title={app.name} description={`Performance metrics for ${app.name}`} />
+        <DashboardHeader title={app.app} description={`Performance metrics for ${app.app}`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -91,19 +48,19 @@ export default function AppDetailsPage() {
             <CardHeader className="flex flex-row items-center gap-4 pb-2">
               <div className="h-16 w-16 overflow-hidden rounded-md">
                 <Image
-                  src={app.icon || "/placeholder.svg"}
-                  alt={app.name}
+                  src="/placeholder.svg"
+                  alt={app.app}
                   width={64}
                   height={64}
                   className="h-full w-full object-cover"
                 />
               </div>
               <div>
-                <CardTitle>{app.name}</CardTitle>
+                <CardTitle>{app.app}</CardTitle>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <Badge variant="outline">{app.platform}</Badge>
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    {app.status}
+                    Active
                   </Badge>
                 </div>
               </div>
@@ -112,15 +69,15 @@ export default function AppDetailsPage() {
               <div className="grid gap-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Ad Units:</span>
-                  <span className="font-medium">{app.adUnits}</span>
+                  <span className="font-medium">{app.adUnits ?? "--"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Revenue:</span>
-                  <span className="font-medium">{app.revenue}</span>
+                  <span className="font-medium">{app.revenue ?? "--"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">App ID:</span>
-                  <span className="font-medium">{app.id}</span>
+                  <span className="font-medium">{app._id}</span>
                 </div>
               </div>
             </CardContent>
@@ -138,13 +95,13 @@ export default function AppDetailsPage() {
                 </TabsList>
                 <div className="p-4">
                   <TabsContent value="overview" className="mt-0">
-                    <AppOverview appId={app.id} />
+                    <AppOverview appId={app._id} />
                   </TabsContent>
                   <TabsContent value="metrics" className="mt-0">
-                    <AppPerformanceMetrics appId={app.id} />
+                    <AppPerformanceMetrics appId={app._id} />
                   </TabsContent>
                   <TabsContent value="adunits" className="mt-0">
-                    <AppAdUnits appId={app.id} />
+                    <AppAdUnits appId={app._id} />
                   </TabsContent>
                 </div>
               </Tabs>

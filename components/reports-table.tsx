@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -11,77 +11,114 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+} from "@tanstack/react-table";
+import { ArrowUpDown, ChevronDown, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-// Define the type for our data
 type AdMobReport = {
-  id: string
-  app: string
-  date: string
-  adUnit: string
-  adFormat: string
-  requests: number
-  impressions: number
-  clicks: number
-  ctr: string
-  revenue: string
-  ecpm: string
-}
+  id: string;
+  app: string;
+  country: string;
+  platform: string;
+  date: string;
+  estimatedEarnings: string;
+  adSource: string;
+  adSourceInstance: string;
+  adUnit: string;
+  mediationGroup: string;
+  format: string;
+  mobileOsVersion: number;
+  gmaSdkVersion: number;
+  appVersionName: number;
+  servingRestriction: string;
+  adRequests: string;
+  clicks: string;
+  impressions: string;
+  matchedRequests: string;
+  matchRate: string;
+  observedEcpm: string;
+};
 
 export function ReportsTable() {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [data, setData] = useState<AdMobReport[]>([])
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [data, setData] = useState<AdMobReport[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:8080/daily-earnings")
-        const json = await res.json()
-        
-        const mappedData: AdMobReport[] = json.map((item: any) => ({
+        const res = await fetch("http://localhost:8080/daily-earnings");
+        const json = await res.json();
+        console.log("Fetched data:", json);
+        const mappedData: AdMobReport[] = json.data.map((item: any) => ({
           id: item.id || item._id,
-          app: item.appId?.app || "N/A",
           date: new Date(item.date).toLocaleDateString(),
-          adUnit: item.adUnit,
-          adFormat: item.format,
-          requests: parseInt(item.adRequests?.split(":").pop() || "0"),
-          impressions: parseInt(item.impressions?.split(":").pop() || "0"),
+          app: item.appId?.app,
+          country: item?.appId?.country,
+          platform: item?.appId?.platform || "N/A",
+          estimatedEarnings: item.estimatedEarnings || "0",
+          adSource: item.adSource || "N/A",
+          adSourceInstance: item.adSourceInstance || "N/A",
+          adUnit: item.adUnit || "N/A",
+          mediationGroup: item.mediationGroup || "N/A",
+          format: item.format,
+          mobileOsVersion: parseInt(item.mobileOsVersion) || 0,
+          gmaSdkVersion: parseInt(item.gmaSdkVersion) || 0,
+          appVersionName: parseInt(item.appVersionName) || 0,
+          servingRestriction: item.servingRestriction || "N/A",
+          adRequests: item.adRequests || "0",
           clicks: item.clicks || "0",
-          ctr: item.matchRate || "0",
-          revenue: item.estimatedEarnings || "0",
-          ecpm: item.observedEcpm || "0",
-        }))
+          impressions: item.impressions || "0",
+          matchedRequests: item.matchedRequests || "0",
+          matchRate: item.matchRate || "0",
+          observedEcpm: item.observedEcpm || "0",
+        }));
+        console.log("Mapped data:", mappedData);
 
-        setData(mappedData)
+        setData(mappedData);
       } catch (error) {
-        console.error("Failed to fetch report:", error)
+        console.error("Failed to fetch report:", error);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   const columns: ColumnDef<AdMobReport>[] = [
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => <div>{row.getValue("date")}</div>,
+    },
     {
       accessorKey: "app",
       header: "App",
       cell: ({ row }) => <div>{row.getValue("app")}</div>,
     },
     {
-      accessorKey: "date",
-      header: "Date",
-      cell: ({ row }) => <div>{row.getValue("date")}</div>,
+      accessorKey: "country",
+      header: "Country",
+      cell: ({ row }) => <div>{row.getValue("country")}</div>,
+    },
+    {
+      accessorKey: "platform",
+      header: "Platform",
+      cell: ({ row }) => <div>{row.getValue("platform")}</div>,
     },
     {
       accessorKey: "adUnit",
@@ -89,67 +126,103 @@ export function ReportsTable() {
       cell: ({ row }) => <div>{row.getValue("adUnit")}</div>,
     },
     {
-      accessorKey: "adFormat",
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Ad Format
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => <div>{row.getValue("adFormat")}</div>,
+      accessorKey: "format",
+      header: "Ad Format",
+      cell: ({ row }) => <div>{row.getValue("format")}</div>,
     },
     {
-      accessorKey: "requests",
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Requests
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
+      accessorKey: "adSource",
+      header: "Ad Source",
+      cell: ({ row }) => <div>{row.getValue("adSource")}</div>,
+    },
+    {
+      accessorKey: "adSourceInstance",
+      header: "Ad Source Instance",
+      cell: ({ row }) => <div>{row.getValue("adSourceInstance")}</div>,
+    },
+    {
+      accessorKey: "estimatedEarnings",
+      header: "Revenue",
       cell: ({ row }) => (
-        <div className="text-right">{(row.getValue("requests") as number).toLocaleString()}</div>
+        <div className="text-right font-medium">{row.getValue("estimatedEarnings")}</div>
+      ),
+    },
+    {
+      accessorKey: "observedEcpm",
+      header: "eCPM",
+      cell: ({ row }) => (
+        <div className="text-right">{row.getValue("observedEcpm")}</div>
       ),
     },
     {
       accessorKey: "impressions",
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Impressions
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
+      header: "Impressions",
       cell: ({ row }) => (
-        <div className="text-right">{(row.getValue("impressions") as number).toLocaleString()}</div>
+        <div className="text-right">
+          {(row.getValue("impressions") as number).toLocaleString()}
+        </div>
       ),
     },
     {
       accessorKey: "clicks",
       header: "Clicks",
       cell: ({ row }) => (
-        <div className="text-right">{(row.getValue("clicks") as number).toLocaleString()}</div>
+        <div className="text-right">
+          {(row.getValue("clicks") as number).toLocaleString()}
+        </div>
       ),
     },
     {
-      accessorKey: "ctr",
-      header: "CTR",
-      cell: ({ row }) => <div className="text-right">{row.getValue("ctr")}</div>,
-    },
-    {
-      accessorKey: "revenue",
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Revenue
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+      accessorKey: "adRequests",
+      header: "Ad Requests",
+      cell: ({ row }) => (
+        <div className="text-right">
+          {(row.getValue("adRequests") as number).toLocaleString()}
+        </div>
       ),
-      cell: ({ row }) => <div className="text-right font-medium">{row.getValue("revenue")}</div>,
     },
     {
-      accessorKey: "ecpm",
-      header: "eCPM",
-      cell: ({ row }) => <div className="text-right">{row.getValue("ecpm")}</div>,
+      accessorKey: "matchedRequests",
+      header: "Matched Requests",
+      cell: ({ row }) => (
+        <div className="text-right">
+          {(row.getValue("matchedRequests") as number).toLocaleString()}
+        </div>
+      ),
     },
-  ]
+    {
+      accessorKey: "matchRate",
+      header: "Match Rate",
+      cell: ({ row }) => <div className="text-right">{row.getValue("matchRate")}</div>,
+    },
+    {
+      accessorKey: "mediationGroup",
+      header: "Mediation Group",
+      cell: ({ row }) => <div>{row.getValue("mediationGroup")}</div>,
+    },
+    {
+      accessorKey: "mobileOsVersion",
+      header: "OS Version",
+      cell: ({ row }) => <div>{row.getValue("mobileOsVersion")}</div>,
+    },
+    {
+      accessorKey: "gmaSdkVersion",
+      header: "GMA SDK Version",
+      cell: ({ row }) => <div>{row.getValue("gmaSdkVersion")}</div>,
+    },
+    {
+      accessorKey: "appVersionName",
+      header: "App Version",
+      cell: ({ row }) => <div>{row.getValue("appVersionName")}</div>,
+    },
+    {
+      accessorKey: "servingRestriction",
+      header: "Restriction",
+      cell: ({ row }) => <div>{row.getValue("servingRestriction")}</div>,
+    },
+  ];
+  
+  
 
   const table = useReactTable({
     data,
@@ -164,7 +237,7 @@ export function ReportsTable() {
       sorting,
       columnFilters,
     },
-  })
+  });
 
   return (
     <div className="w-full">
@@ -172,7 +245,9 @@ export function ReportsTable() {
         <Input
           placeholder="Filter apps..."
           value={(table.getColumn("app")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("app")?.setFilterValue(event.target.value)}
+          onChange={(event) =>
+            table.getColumn("app")?.setFilterValue(event.target.value)
+          }
           className="max-w-sm"
         />
         <div className="flex items-center gap-2">
@@ -191,7 +266,9 @@ export function ReportsTable() {
                     key={column.id}
                     className="capitalize"
                     checked={column.getIsVisible()}
-                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
                   >
                     {column.id}
                   </DropdownMenuCheckboxItem>
@@ -211,7 +288,12 @@ export function ReportsTable() {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -220,15 +302,26 @@ export function ReportsTable() {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>
@@ -238,7 +331,8 @@ export function ReportsTable() {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getFilteredRowModel().rows.length} of {data.length} results
+          Showing {table.getFilteredRowModel().rows.length} of {data.length}{" "}
+          results
         </div>
         <div className="space-x-2">
           <Button
@@ -249,11 +343,16 @@ export function ReportsTable() {
           >
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
             Next
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
