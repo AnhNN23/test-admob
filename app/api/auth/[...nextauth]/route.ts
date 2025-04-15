@@ -1,7 +1,10 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import axios from "axios";
+// app/api/auth/[...nextauth]/route.ts
 
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import type { NextAuthOptions } from "next-auth";
+
+// Các scope cần thiết để truy cập AdMob API + thông tin user
 const API_SCOPE = [
   "https://www.googleapis.com/auth/admob.readonly",
   "https://www.googleapis.com/auth/admob.report",
@@ -9,9 +12,7 @@ const API_SCOPE = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
 
-const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
-
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -19,86 +20,61 @@ const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: API_SCOPE.join(" "),
-          access_type: "offline",
-          prompt: "consent",
+          access_type: "offline", // Lấy refresh_token
+          prompt: "consent", // Yêu cầu user đồng ý mỗi lần
         },
       },
     }),
   ],
 
   callbacks: {
+    // Gọi mỗi lần có token mới được tạo hoặc refresh
     async jwt({ token, account, profile }) {
       if (account && profile) {
+        // Gán access_token và refresh_token vào token
         token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
+        token.refreshToken = account.refresh_token ?? token.refreshToken;
 
-        // Gửi token về server backend
+        // Gửi token lên backend để lưu
         try {
-          await saveTokenToBackend(account, profile);
+          const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL!;
+          await fetch(`${apiUrl}/tokens/save-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              access_token: account.access_token,
+              refresh_token: account.refresh_token,
+              name: profile.name,
+              email: profile.email,
+              picture: profile.picture,
+            }),
+          });
         } catch (error) {
           console.error("Gửi token thất bại:", error);
         }
       }
-
       return token;
     },
 
+    // Gọi mỗi khi frontend gọi useSession()
     async session({ session, token }) {
-      session.accessToken = token.accessToken as string | undefined;
-      session.refreshToken = token.refreshToken as string | undefined;
+      session.accessToken = token.accessToken as string;
+      session.refreshToken = token.refreshToken as string;
       return session;
     },
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-
-  cookies: {
-    sessionToken: {
-      name: `__Secure-next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-        domain: ".limgrow.com",
-      },
-    },
-  },
 };
 
 const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
 
-
-async function saveTokenToBackend(account: any, profile: any) {
-  try {
-    await axios.post(
-      `${apiUrl}/tokens/save-token`,
-      {
-        access_token: account.access_token,
-        refresh_token: account.refresh_token,
-        name: profile.name,
-        email: profile.email,
-        picture: profile.picture,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        }
-      }
-    );
-  } catch (error: any) {
-    throw new Error("Gửi token thất bại: " + error?.message || error);
-  }
-}
-
+// Mở rộng type cho Session và JWT
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
     refreshToken?: string;
-  }
-
-  interface Profile {
-    picture?: string;
   }
 }
 
@@ -108,5 +84,3 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
   }
 }
-
-export { handler as GET, handler as POST };
