@@ -1,7 +1,6 @@
-// app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { NextAuthOptions, Session, Profile } from "next-auth";
+import axios from "axios";
 
 const API_SCOPE = [
   "https://www.googleapis.com/auth/admob.readonly",
@@ -10,7 +9,9 @@ const API_SCOPE = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
 
-export const authOptions: NextAuthOptions = {
+const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -31,20 +32,7 @@ export const authOptions: NextAuthOptions = {
         token.refreshToken = account.refresh_token;
 
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL; 
-          await fetch(`${apiUrl}/tokens/save-token`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              access_token: account.access_token,
-              refresh_token: account.refresh_token,
-              name: profile.name,
-              email: profile.email,
-              picture: profile.picture,
-            }),
-          });
+          await saveTokenToBackend(account, profile);
         } catch (error) {
           console.error("Gửi token thất bại:", error);
         }
@@ -60,20 +48,37 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
+});
 
+async function saveTokenToBackend(account: any, profile: any) {
+  try {
+    await axios.post(`${apiUrl}/tokens/save-token`, {
+      access_token: account.access_token,
+      refresh_token: account.refresh_token,
+      name: profile.name,
+      email: profile.email,
+      picture: profile.picture,
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    throw new Error("Gửi token thất bại: " + error);
+  }
+}
+
+// Custom typings
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
     refreshToken?: string;
   }
-}
 
-declare module "next-auth" {
   interface Profile {
     picture?: string;
   }
 }
 
-const handler = NextAuth(authOptions);
+// ✅ Chỉ export GET và POST, không export thêm gì nữa
 export { handler as GET, handler as POST };
