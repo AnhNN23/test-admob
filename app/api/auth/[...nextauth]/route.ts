@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import axios from "axios";
 
@@ -11,7 +11,7 @@ const API_SCOPE = [
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 
-const handler = NextAuth({
+const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -25,12 +25,14 @@ const handler = NextAuth({
       },
     }),
   ],
+
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
 
+        // Gửi token về server backend
         try {
           await saveTokenToBackend(account, profile);
         } catch (error) {
@@ -47,28 +49,48 @@ const handler = NextAuth({
       return session;
     },
   },
+
   secret: process.env.NEXTAUTH_SECRET,
-});
+
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true,
+        domain: ".limgrow.com",
+      },
+    },
+  },
+};
+
+const handler = NextAuth(authOptions);
+
 
 async function saveTokenToBackend(account: any, profile: any) {
   try {
-    await axios.post(`${apiUrl}/tokens/save-token`, {
-      access_token: account.access_token,
-      refresh_token: account.refresh_token,
-      name: profile.name,
-      email: profile.email,
-      picture: profile.picture,
-    }, {
-      headers: {
-        "Content-Type": "application/json",
+    await axios.post(
+      `${apiUrl}/tokens/save-token`,
+      {
+        access_token: account.access_token,
+        refresh_token: account.refresh_token,
+        name: profile.name,
+        email: profile.email,
+        picture: profile.picture,
       },
-    });
-  } catch (error) {
-    throw new Error("Gửi token thất bại: " + error);
+      {
+        headers: {
+          "Content-Type": "application/json",
+        }
+      }
+    );
+  } catch (error: any) {
+    throw new Error("Gửi token thất bại: " + error?.message || error);
   }
 }
 
-// Custom typings
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
@@ -80,5 +102,11 @@ declare module "next-auth" {
   }
 }
 
-// ✅ Chỉ export GET và POST, không export thêm gì nữa
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    refreshToken?: string;
+  }
+}
+
 export { handler as GET, handler as POST };
