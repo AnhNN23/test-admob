@@ -34,7 +34,8 @@ export default function AppByNamePage() {
   const fetchApps = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`http://localhost:8080/apps/test/${appName}`)
+      const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;  
+      const res = await axios.get(`${apiUrl}/apps/test/${appName}`)
       setApps(res.data)
     } catch (error) {
       console.error("Error fetching apps:", error)

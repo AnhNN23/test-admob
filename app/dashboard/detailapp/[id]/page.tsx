@@ -20,9 +20,10 @@ const fetcher = (url: string) => axios.get(url).then((res) => res.data)
 export default function AppDetailsPage() {
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
-
+  const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+  console.log("API URL:", apiUrl)
   const { data: app, error, isLoading } = useSWR(
-    id ? `http://localhost:8080/apps/${id}` : null,
+    id ? `${apiUrl}/apps/${id}` : null,
     fetcher
   )
 

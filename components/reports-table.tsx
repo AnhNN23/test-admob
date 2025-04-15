@@ -62,7 +62,9 @@ export function ReportsTable() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:8080/daily-earnings");
+        const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+        console.log("API URL:", apiUrl);
+        const res = await fetch(`${apiUrl}/daily-earnings`);
         const json = await res.json();
         console.log("Fetched data:", json);
         const mappedData: AdMobReport[] = json.data.map((item: any) => ({

@@ -29,7 +29,8 @@ export default function AppsPage() {
   const fetchGroupedApps = async () => {
     setLoading(true)
     try {
-      const res = await axios.get("http://localhost:8080/apps/test/groupByApp")
+      const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;  
+      const res = await axios.get(`${apiUrl}/apps/test/groupByApp`)
       setApps(res.data)
     } catch (err) {
       console.error("Failed to fetch grouped apps:", err)

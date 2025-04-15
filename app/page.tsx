@@ -1,90 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { exchangeCodeForToken, getGoogleUserInfo } from '@/lib/tokenService';
-import { getAccounts, getGoogleAuthUrl } from '@/lib/googleAuth';
-import Cookies from 'js-cookie';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation'; 
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from "react";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
-export default function Home() {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+export default function LoginPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Nếu đã đăng nhập thì redirect
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get('code');
-    const savedToken = Cookies.get('access_token');
-
-    if (savedToken) {
-      setAccessToken(savedToken);
-      router.push('/dashboard');
-      return;
+    if (status === "authenticated") {
+      router.push("/dashboard");
     }
+  }, [status, router]);
 
-    if (code) {
-      handleAuthFlow(code);
-    }
-  }, [router]);
-
-  const handleAuthFlow = async (code: string) => {
-    try {
-      setIsLoading(true);
-
-      const tokens = await exchangeCodeForToken(code);
-      const userInfo = await getGoogleUserInfo(tokens.access_token);
-
-      // Save tokens and user info to backend
-      const tokenRes = await fetch('http://localhost:8080/tokens/save-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          name: userInfo.name,
-          email: userInfo.email,
-          picture: userInfo.picture,
-        }),
-      });
-
-      const savedToken = await tokenRes.json(); 
-
-      const accounts = await getAccounts(tokens.access_token);
-
-      await Promise.all(
-        accounts.map(async (account:any) => {
-          const publisherId = account.name.split('/')[1];
-
-          const accountPayload = {
-            publisher_id: publisherId,
-            name: account.name,
-            currency_code: account.currencyCode,
-            reporting_time_zone: account.reportingTimeZone,
-            token: savedToken.token._id,
-          };
-
-          await fetch('http://localhost:8080/accounts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(accountPayload),
-          });
-        })
-      );
-
-      Cookies.set('access_token', tokens.access_token);
-      setAccessToken(tokens.access_token);
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Authentication failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = () => {
-    window.location.href = getGoogleAuthUrl();
+  const handleLogin = async () => {
+    setIsLoading(true);
+    await signIn("google");
   };
 
   return (
@@ -96,7 +32,12 @@ export default function Home() {
             <p className="text-gray-500">Sign in to your account with Google</p>
           </div>
 
-          <Button onClick={handleLogin} className="w-full" variant="outline" disabled={isLoading}>
+          <Button
+            onClick={handleLogin}
+            className="w-full"
+            variant="outline"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <span>Loading...</span>
             ) : (
