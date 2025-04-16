@@ -14,7 +14,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Nếu đã đăng nhập thì chuyển hướng
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/dashboard");
@@ -24,7 +23,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setIsLoading(true);
     await signIn("google", {
-      callbackUrl: "/dashboard", // hoặc route khác nếu bạn muốn
+      callbackUrl: "/dashboard", 
     });
   };
 
