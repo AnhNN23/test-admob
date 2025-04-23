@@ -31,16 +31,15 @@ const handler = NextAuth({
         token.refreshToken = account.refresh_token ?? token.refreshToken;
 
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL!;
+          const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+          
           await fetch(`${apiUrl}/tokens/save-token`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               access_token: account.access_token,
               refresh_token: account.refresh_token,
-              name: profile.name,
-              email: profile.email,
-              picture: "null",
+              email: profile.email
             }),
           });
 
