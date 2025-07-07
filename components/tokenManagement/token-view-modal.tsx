@@ -1,10 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Token } from "@/types/token"
-
 
 interface TokenViewModalProps {
   isOpen: boolean
@@ -13,11 +13,63 @@ interface TokenViewModalProps {
 }
 
 export default function TokenViewModal({ isOpen, token, onClose }: TokenViewModalProps) {
+  const [googleAuthUrl, setGoogleAuthUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (token) {
+      const redirectUri = token.google_redirect_uri || "YOUR_DEFAULT_REDIRECT_URI"
+      const clientId = token.google_client_id || "YOUR_DEFAULT_GOOGLE_CLIENT_ID"
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile email&access_type=offline&prompt=consent`
+
+      setGoogleAuthUrl(authUrl)
+    }
+  }, [token])
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get("code")
+
+    const fetchTokens = async () => {
+      if (code && token) {
+        try {
+          const response = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+              code,
+              client_id: token.google_client_id,
+              client_secret: token.google_client_secret,
+              redirect_uri: token.google_redirect_uri,
+              grant_type: "authorization_code"
+            }).toString()
+          })
+
+          const data = await response.json()
+          console.log("✅ Access Token:", data.access_token)
+          console.log("🔁 Refresh Token:", data.refresh_token)
+        } catch (error) {
+          console.error("❌ Failed to fetch tokens:", error)
+        }
+      }
+    }
+
+    fetchTokens()
+  }, [token])
+
   if (!token) return null
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A"
     return new Date(dateString).toLocaleString()
+  }
+
+  const handleGoogleLogin = () => {
+    if (googleAuthUrl) {
+      window.location.href = googleAuthUrl
+    }
   }
 
   return (
@@ -65,6 +117,11 @@ export default function TokenViewModal({ isOpen, token, onClose }: TokenViewModa
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Redirect URI</h4>
                 <p className="text-sm break-all">{token.google_redirect_uri || "Not configured"}</p>
+              </div>
+              <div className="mt-4">
+                <Button onClick={handleGoogleLogin} disabled={!googleAuthUrl}>
+                  Login with Google
+                </Button>
               </div>
             </div>
           </div>
